@@ -50,7 +50,7 @@ public:
             {
                 try
                 {
-                    if (entry.is_regular_file())
+                    if (entry.is_regular_file() && entry.path().extension() == ".txt")
                     {
                         out.push_back(entry.path().string());
                     }
