@@ -1,49 +1,53 @@
 #include <iostream>
-#include <filesystem>
-#include <unordered_map>
+#include <filesystem> // c++17
+
+#include <set>           // unique tree
+#include <unordered_map> // unique hash table
+#include <unordered_set> // dictionary hash table
+
 #include <vector>
-#include <fstream>
+#include <fstream> // files
 
 using namespace std;
 
 class ht
 {
-private:
-    unordered_map<unsigned long, vector<string>> ht;
-
 public:
     void insert(unsigned int k, string v)
     {
-        if (ht.find(k) == ht.end())
+        if (ht2.find(k) == ht2.end())
         {
-            // k not in hash table
-            ht.insert(make_pair(k, vector<string>{}));
+            // k is not in the hash table
+            ht2.insert(make_pair(k, vector<string>{}));
         }
-        ht[k].push_back(v);
+        ht2[k].push_back(v);
     }
-
-    vector<string> &find(unsigned int k)
+    vector<string>& find(unsigned int k)
     {
-        return ht[k];
+        return ht2[k];
     }
 
     auto begin()
     {
-        return ht.begin();
+        return ht2.begin();
     }
 
     auto end()
     {
-        return ht.end();
+        return ht2.end();
     }
+
+private:
+    unordered_map<unsigned long, vector<string>> ht2;
 };
 
-class FileDiscover
+class FileDiscovery
 {
 public:
     static vector<string> find(vector<string> paths)
     {
-        vector<string> out;
+        set<string> filepaths;
+        // vector<string> out;
         for (auto path : paths)
         {
             for (const auto &entry : filesystem::recursive_directory_iterator(path))
@@ -52,7 +56,7 @@ public:
                 {
                     if (entry.is_regular_file() && entry.path().extension() == ".txt")
                     {
-                        out.push_back(entry.path().string());
+                        filepaths.insert(entry.path().string());
                     }
                 }
                 catch (...)
@@ -60,7 +64,7 @@ public:
                 }
             }
         }
-        return vector<string>(out.begin(), out.end());
+        return vector<string>(filepaths.begin(), filepaths.end());
     }
 };
 
@@ -88,25 +92,67 @@ public:
     }
 };
 
-class FileMatcher{
-    public:
-    static void match(vector<string> paths){
-        auto o = FileDiscover::find(paths);
-        for (auto l : o)
+class FileMatcher
+{
+public:
+    static void findExactMatch(const vector<string>& paths, vector<pair<string, string>>& exactMatches)
     {
-        cout << l << "\n";
-        cout << FileHash::simple_file_hash(l) << "\n\n";
+
+        for (int i = 0; i < paths.size(); i++)
+        {
+            for (int j = i + 1; j < paths.size(); j++)
+            {
+                ifstream file1(paths[i], ios::binary);
+                ifstream file2(paths[j], ios::binary);
+                if (!file1.is_open() || !file2.is_open())
+                {
+                    continue;
+                }
+                istreambuf_iterator<char> begin1(file1), end1;
+                istreambuf_iterator<char> begin2(file2), end2;
+                if (equal(begin1, end1, begin2, end2))
+                {
+                    //  cout << "Exact match found: " << paths[i] << " and " << paths[j] << endl;
+                    exactMatches.emplace_back(make_pair(paths[i], paths[j]));
+                }
+            }
+        }
     }
+
+    static vector<pair<string, string>> find_match(const vector<string>& paths)
+    {
+        ht h;
+        auto file_collections = FileDiscovery::find(paths);
+        for (auto f : file_collections)
+        {
+            unsigned long hashed = FileHash::simple_file_hash(f);
+
+            cout << f << "\t";
+            cout << hashed;
+            cout << "\n";
+            h.insert(hashed, f);
+        }
+        vector<pair<string, string>> exactMatches;
+
+        for (auto k = h.begin(); k != h.end(); k++)
+        {
+            if (k->second.size() > 1)
+            {
+                findExactMatch(k->second, exactMatches);
+            }
+        }
+        return exactMatches;
     }
 };
 
 int main()
 {
     vector<string> paths = {"./dir1", "./dir2"};
- 
-    cout << "FILEMATCHER:\n\n";
-    
-    FileMatcher::match(paths);
-  
+
+    auto v = FileMatcher::find_match(paths);
+    for (auto& pr : v)
+    {
+        cout << pr.first << " <==> " << pr.second << "\n";
+    }
     return 0;
 }

@@ -1,0 +1,36 @@
+Goal - find file with duplicate contents.
+
+-- input 1+ paths
+-- compute the hash of file contents
+-- Store the hash of file contents
+-- Compare hashes of files
+-- output list of matched file
+
+
+FileMatcher
+    ++ DS: Hash Map hash --> path
+        class HT{
+            key hashval
+            value path   
+        }
+    ++ Method to compute hash for file based on contents
+        ```
+        unsigned long simple_file_hash(const std::string& file_path) {
+        std::ifstream file(file_path, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open: " << file_path << std::endl;
+            return 0;
+        }
+
+        unsigned long hash = 5381;  // Starting seed (DJB2 style)
+        char c;
+
+        while (file.get(c)) {
+            hash = ((hash << 5) + hash) + static_cast<unsigned char>(c); // hash * 33 + c
+        }
+
+        return hash;
+        }
+        ```
+    ++ method to compare two files
+    ++ get all files from one or more paths
